@@ -170,7 +170,7 @@ function App() {
       <audio ref={audioRef} src="assets/horn-alert.wav"/>
 
       <div className="header">
-        <h1>Poker Timer</h1>
+        {/*<h1>Poker Timer</h1>*/}
         <div className="controls">
           <button onClick={toggleTimer}>{active ? 'Pause' : 'Start'}</button>
           <button onClick={resetTimer}>Reset</button>
@@ -194,20 +194,27 @@ function App() {
           </div>
         ) : (
           <>
-            <div className="current-level">
-              Round: {currentLevel + 1} of {blinds.length}
-            </div>
+            {/*<div className="current-level">*/}
+            {/*  Round: {currentLevel + 1} of {blinds.length}*/}
+            {/*</div>*/}
             <div className="blinds-display">
               <div className="small-blind">
-                Small Blind:
+                Small Blind
                 <h2>{blinds[currentLevel].small}</h2>
               </div>
+
+              <div className="time-remaining">
+                <p className={'current-level'}>
+                  Round: {currentLevel + 1} of {blinds.length}
+                </p>
+                {formatTime(remainingTime)}
+              </div>
+
               <div className="big-blind">
-                Big Blind:
+                Big Blind
                 <h2>{blinds[currentLevel].big}</h2>
               </div>
             </div>
-            <div className="time-remaining">{formatTime(remainingTime)}</div>
           </>
         )}
       </div>
