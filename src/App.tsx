@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import './App.css'
 import { ALL_BLINDS, formatTime, intializeBlindsForNewGame, playAudio } from "./utils.ts";
 import { Header } from "./header.tsx";
@@ -95,20 +95,31 @@ function App() {
     setBlinds(gameBlinds);
   }
 
-  useEffect(function spaceBarPausesToggle() {
-    const handleKeyPress = (event: KeyboardEvent) => {
-      if (event.code === 'Space' && !showSettings) {
-        event.preventDefault(); // Prevent page scroll
-        toggleTimer();
-      }
-    };
+  const handleKeyPress = (event: KeyboardEvent) => {
+    console.log('event', event);
+    
+    if (event.code === 'Space') {
+      event.preventDefault(); // Prevent page scroll
+      toggleTimer();
+    }
+  };
 
-    window.addEventListener('keydown', handleKeyPress);
+  window.addEventListener('keydown', handleKeyPress);
 
-    return () => {
-      window.removeEventListener('keydown', handleKeyPress);
-    };
-  }, [showSettings, toggleTimer]);
+  // useLayoutEffect(function spaceBarPausesToggle() {
+  //   const handleKeyPress = (event: KeyboardEvent) => {
+  //     if (event.code === 'Space') {
+  //       event.preventDefault(); // Prevent page scroll
+  //       toggleTimer();
+  //     }
+  //   };
+
+  //   window.addEventListener('keydown', handleKeyPress);
+
+  //   return () => {
+  //     window.removeEventListener('keydown', handleKeyPress);
+  //   };
+  // }, []);
 
 
   return (
