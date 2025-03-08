@@ -1,147 +1,95 @@
-import { act, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './App.css'
-import { Settings } from './settings.tsx';
-import { ALL_BLINDS, intializeBlindsForNewGame, ROUND_TIMES } from "./utils.ts";
+import { 
+  ALL_BLINDS, 
+  intializeBlindsForNewGame, 
+  ROUND_TIMES,
+  playAudio,
+  playAudioBak,
+  formatTime
+} from "./utils.ts";
+import { Header } from "./header.tsx";
+import { MainDisplay } from './components/MainDisplay';
+import { RoundSettings } from './components/RoundSettings';
+
+// Define types
+type Blind = {
+  small: number;
+  big: number;
+};
 
 function App() {
   // State for timer
-  const [remainingTime, setRemainingTime] = useState(900); // 15 minutes default
+  const [remainingTime, setRemainingTime] = useState(300); // 5 minutes default
   const [active, setActive] = useState(false);
   const [currentRound, setCurrentRound] = useState(0);
   const [blinds, setBlinds] = useState(ALL_BLINDS);
   const [showSettings, setShowSettings] = useState(false);
-  const [editingRound, setEditingRound] = useState(null);
-  const [newRound, setNewRound] = useState({ small: 0, big: 0, time: 900 });
+  const [editingRound, setEditingRound] = useState<number | null>(null);
+  const [newRound, setNewRound] = useState({ small: 0, big: 0 });
   const [breakActive, setBreakActive] = useState(false);
   const [breakTime, setBreakTime] = useState(300); // 5 minutes default
   const [breakRemaining, setBreakRemaining] = useState(300);
   const [audioEnabled, setAudioEnabled] = useState(true);
+  const [roundTimeInSeconds, setRoundTimeInSeconds] = useState(300); // 5 minutes default
 
-  const [roundTimeInSeconds, setRoundTimeInSeconds] = useState(300);
   const ONE_SECOND = 1000;
-
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  // Function to play audio safely
-  const playAudioStv = () => {
-    let reapeatXTimes = 0;
-    audioRef.current.onended = () => {
-      --reapeatXTimes;
-      if (reapeatXTimes > 0) {
-        audioRef.current.play();
-      }
-    }
-
-    audioRef.current.play();
-  }
-
-  /* @deprecated */
-  const playAudio = async () => {
-    if (audioEnabled && audioRef.current) {
-      let playCount = 0;
-      const maxPlays = 3;
-
-      const playSound = async () => {
-        if (playCount < maxPlays) {
-          try {
-            audioRef.current!.currentTime = 0; // Reset to start
-            await audioRef.current!.play();
-            playCount++;
-
-            // Set up the next play after this one finishes
-            if (playCount < maxPlays) {
-              return new Promise((resolve) => {
-                audioRef.current!.onended = () => {
-                  playSound().then(resolve);
-                };
-              });
-            }
-          } catch (error) {
-            console.error('Error playing audio:', error);
-          }
-        }
-      };
-
-      try {
-        await playSound();
-      } catch (error) {
-        console.error('Error in playAudio:', error);
-      }
-    }
-  };
-
+  // Update remaining time when round time changes
   useEffect(() => {
-    console.log('%c...rountime', 'color:gold', roundTimeInSeconds)
-    let timer = 0;
-    if (active && roundTimeInSeconds) {
-      timer = setInterval(() => {
-        setRemainingTime(roundTimeInSeconds - 1)
-      }, ONE_SECOND)
-    }
-    if (!roundTimeInSeconds) {
-      clearInterval(timer)
-    }
-  }, [active, roundTimeInSeconds])
+    setRemainingTime(roundTimeInSeconds);
+  }, [roundTimeInSeconds]);
 
-  // Handle timer
+  // Main timer effect
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
+    let timerId: number | undefined;
 
     if (active && remainingTime > 0) {
-      interval = setInterval(() => {
-        setRemainingTime(prevTime => prevTime - 1);
-      }, 1000);
-    } else if (breakActive && breakRemaining > 0) {
-      interval = setInterval(() => {
-        setBreakRemaining(prevTime => prevTime - 1);
-      }, 1000);
-    } else if ((active && remainingTime === 0) || (breakActive && breakRemaining === 0)) {
-      if (active) {
-        // Play sound when timer ends
-        playAudio();
+      timerId = window.setInterval(() => {
+        setRemainingTime(prevTime => {
+          if (prevTime <= 1) {
+            // Play sound when timer ends
+            if (audioRef.current) {
+              playAudioBak(audioRef, audioEnabled);
+            }
 
-        if (currentRound < blinds.length - 1) {
-          setCurrentRound(prevLevel => prevLevel + 1);
-          setRemainingTime(blinds[currentRound + 1].time);
-        } else {
-          setActive(false);
-        }
-      } else if (breakActive) {
-        // End break
-        playAudio();
-        setBreakActive(false);
-        setBreakRemaining(breakTime);
+            // Always move to next round and reset timer
+            setTimeout(() => {
+              setCurrentRound(prevRound => prevRound + 1);
+              setRemainingTime(roundTimeInSeconds);
+            }, 0);
+            return 0;
+          }
+          return prevTime - 1;
+        });
+      }, ONE_SECOND);
+    } else if (breakActive && breakRemaining > 0) {
+      timerId = window.setInterval(() => {
+        setBreakRemaining(prevTime => prevTime - 1);
+      }, ONE_SECOND);
+    } else if (breakActive && breakRemaining === 0) {
+      // End break
+      if (audioRef.current) {
+        playAudioBak(audioRef, audioEnabled);
       }
+      setBreakActive(false);
+      setBreakRemaining(breakTime);
     }
 
     return () => {
-      if (interval) clearInterval(interval);
+      if (timerId) window.clearInterval(timerId);
     };
-  }, [active, remainingTime, currentRound, blinds, breakActive, breakRemaining, breakTime, audioEnabled]);
-
-  useLayoutEffect(function playRoundSound() {
-    if (showSettings) {
-      playAudioStv();
-    }
-  }, [showSettings]);
-
-  // Format time to MM:SS
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
+  }, [active, breakActive, breakRemaining, breakTime, audioEnabled, roundTimeInSeconds, blinds.length]);
 
   // Toggle timer
-  const toggleTimer = () => {
-    setActive(!active);
-  };
+  const toggleTimer = () => setActive(!active);
 
   // Reset timer
   const resetTimer = () => {
     setActive(false);
     setCurrentRound(0);
-    setRemainingTime(blinds[0].time);
+    setRemainingTime(roundTimeInSeconds);
     setBreakActive(false);
     setBreakRemaining(breakTime);
   };
@@ -149,79 +97,52 @@ function App() {
   // Start/end break
   const toggleBreak = () => {
     if (breakActive) {
-      // End break early
       setBreakActive(false);
       setBreakRemaining(breakTime);
     } else {
-      // Start break
       setActive(false);
       setBreakActive(true);
     }
   };
 
-  // Update blind level
-  const updateBlindLevel = (index) => {
-    setCurrentRound(index);
-    setRemainingTime(blinds[index].time);
-    setActive(false);
-  };
-
-  // Add new level
-  const addLevel = () => {
-    setBlinds([...blinds, { ...newRound }]);
-    setNewRound({ small: 0, big: 0, time: 900 });
-  };
-
-  // Start editing a level
-  const startEditLevel = (index) => {
-    setEditingRound(index);
-    setNewRound({ ...blinds[index] });
-  };
-
-  // Save edited level
-  const saveEditLevel = () => {
-    if (editingRound !== null) {
-      const updatedBlinds = [...blinds];
-      updatedBlinds[editingRound] = { ...newRound };
-      setBlinds(updatedBlinds);
-
-      // Update current time if editing the current level
-      if (editingRound === currentRound) {
-        setRemainingTime(newRound.time);
-      }
-
-      setEditingRound(null);
-      setNewRound({ small: 0, big: 0, time: 900 });
-    }
-  };
-
-  // Remove a level
-  const removeLevel = (index) => {
-    const updatedBlinds = blinds.filter((_, i) => i !== index);
-    setBlinds(updatedBlinds);
-
-    // Adjust current level if needed
-    if (currentRound >= updatedBlinds.length) {
-      setCurrentRound(updatedBlinds.length - 1);
-      if (updatedBlinds.length > 0) {
-        setRemainingTime(updatedBlinds[updatedBlinds.length - 1].time);
-      }
-    } else if (currentRound === index && updatedBlinds.length > 0) {
-      setRemainingTime(updatedBlinds[currentRound < updatedBlinds.length ? currentRound : 0].time);
-    }
-  };
-
   // Update break time
-  const handleBreakTimeChange = (e) => {
+  const handleBreakTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const time = parseInt(e.target.value, 10) * 60;
     setBreakTime(time);
     setBreakRemaining(time);
   };
 
-  const setInitialGameBlinds = (evt) => {
-    const gameBlinds = intializeBlindsForNewGame(evt.target.value)
-    setBlinds(gameBlinds)
+  // Set initial game blinds
+  const setInitialGameBlinds = (evt: React.ChangeEvent<HTMLSelectElement>) => {
+    const gameBlinds = intializeBlindsForNewGame(parseInt(evt.target.value, 10));
+    setBlinds(gameBlinds);
   }
+
+  // Add keyboard event listener for spacebar
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      // Only handle spacebar if settings are not open
+      if (event.code === 'Space' && !showSettings) {
+        event.preventDefault(); // Prevent page scroll
+        toggleTimer();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => {
+      window.removeEventListener('keydown', handleKeyPress);
+    };
+  }, [showSettings, toggleTimer]);
+
+  // Get current blinds based on round number
+  const getCurrentBlinds = () => {
+    // After going through all blinds, stay on the last one
+    if (currentRound >= blinds.length - 1) {
+      return blinds[blinds.length - 1];
+    }
+    return blinds[currentRound];
+  };
+
   return (
     <div className="app">
       <audio
@@ -230,105 +151,37 @@ function App() {
         preload="auto"
       />
 
-      <div className="header">
-        <div className="controls">
-          <button onClick={toggleTimer}>{active ? 'Pause' : 'Start'}</button>
-          <button onClick={resetTimer}>Reset</button>
-          <button onClick={toggleBreak}>
-            {breakActive ? 'End Break' : 'Take Break'}
-          </button>
-          <button id={'toggleSettingsButton'} onClick={() => setShowSettings(!showSettings)}>
-            {showSettings ? 'Hide Settings' : 'Settings'}
-          </button>
-          <button onClick={() => setAudioEnabled(!audioEnabled)}>
-            {audioEnabled ? 'Mute Sound' : 'Enable Sound'}
-          </button>
-        </div>
-      </div>
+      <Header 
+        toggleTimer={toggleTimer}
+        active={active}
+        resetTimer={resetTimer}
+        toggleBreak={toggleBreak}
+        breakActive={breakActive}
+        showSettings={showSettings}
+        setShowSettings={setShowSettings}
+        audioEnabled={audioEnabled}
+        setAudioEnabled={setAudioEnabled}
+      />
 
-      <div className="main-display">
-        {breakActive ? (
-          <div className="break-display">
-            <h2>BREAK TIME</h2>
-            <div className="time-remaining">{formatTime(breakRemaining)}</div>
-          </div>
-        ) : (
-          <>
-            <div className="blinds-display">
-              <div className="small-blind">
-                Small Blind
-                <h2>{blinds[currentRound].small}</h2>
-              </div>
+      <MainDisplay 
+        breakActive={breakActive}
+        breakRemaining={breakRemaining}
+        currentRound={currentRound}
+        blinds={[getCurrentBlinds()]}
+        remainingTime={remainingTime}
+        formatTime={formatTime}
+      />
 
-              <div className="time-remaining">
-                <p className={'current-level'}>
-                  Round: {currentRound + 1} of {blinds.length}
-                </p>
-                {formatTime(remainingTime)}
-              </div>
-
-              <div className="big-blind">
-                Big Blind
-                <h2>{blinds[currentRound].big}</h2>
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-      {/*{showSettings && <Settings blinds={blinds}*/}
-      {/*                           setBlinds={setBlinds}/>*/}
-      {/*}*/}
-      <div id={'round-settings'}>
-
-        {showSettings && (
-          <div className="settings-panel">
-            <h3>Settings</h3>
-
-            <div className={'settings-panel-control'}>
-              <p>Round time</p>
-              <select onChange={(evt) => {
-                setRoundTimeInSeconds(evt.target.value * 60)
-              }}>
-                {ROUND_TIMES.map(time => (<option value={time}>{time}</option>))}
-              </select>
-            </div>
-            <div className={'settings-panel-control'}>
-              <p>Staring blind</p>
-              <select name={'starting-blind'} onChange={setInitialGameBlinds}>
-                {ALL_BLINDS.slice(0, 5).map(blind => {
-                  return (
-                    <option value={blind.small}>{blind.small}</option>
-                  )
-                })}
-              </select>
-            </div>
-
-            <div className="settings-panel-control break-settings">
-              <h4>Break Duration</h4>
-              <input
-                type="number"
-                value={breakTime / 60}
-                onChange={handleBreakTimeChange}
-                min="1"
-                max="60"
-              />
-            </div>
-          </div>
-        )}
-
-        <div className="next-levels">
-          <h3>Upcoming Blinds</h3>
-          <div className="levels-list">
-            {blinds.slice(currentRound + 1, currentRound + 4).map((level, index) => (
-              <div key={index} className="level-item">
-                <div>Level {currentRound + index + 2}</div>
-                <div>SB: {level.small} / BB: {level.big}</div>
-                <div>{level.time / 60} min</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      <RoundSettings 
+        showSettings={showSettings}
+        breakTime={breakTime}
+        handleBreakTimeChange={handleBreakTimeChange}
+        setRoundTimeInSeconds={setRoundTimeInSeconds}
+        roundTimeInSeconds={roundTimeInSeconds}
+        setInitialGameBlinds={setInitialGameBlinds}
+        currentRound={currentRound}
+        blinds={blinds}
+      />
     </div>
   );
 }
