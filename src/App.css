@@ -45,6 +45,10 @@ body {
     flex: 1 1 100%;
     justify-content: center;
     gap: 4rem;
+
+    #toggleSettingsButton{
+        width: 10rem;
+    }
 }
 
 button {
@@ -92,27 +96,31 @@ button:hover {
     box-shadow: 3px 7px 11px 1px black;
     min-width: 17rem;
     color: #777777;
+
     h2 {
         font-size: 8rem;
         color: black;
     }
 }
-.small-blind{
+
+.small-blind {
     transform: rotate(-0.1turn);
     border-radius: 16px;
     padding: 1rem;
 }
-.big-blind{
+
+.big-blind {
     transform: rotate(0.1turn);
     border-radius: 16px;
     padding: 1rem;
 }
+
 .time-remaining {
     font-size: 8rem;
     font-weight: bold;
     padding: 1rem;
     border-radius: 10px;
-    color:black;
+    color: black;
 }
 
 .break-display {
@@ -123,23 +131,53 @@ button:hover {
 .break-display h2 {
     margin-bottom: 20px;
 }
-
+#round-settings{
+    margin-top: auto;
+}
 .settings-panel {
-    background-color: #fff;
+    background-color: rgba(255, 255, 255, 0.8);
     border-radius: 8px;
     padding: 20px;
-    margin-bottom: 20px;
+    margin-bottom: 1rem;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    font-size: 1.3rem;
+    display: flex;
+
+
+    select, input {
+        border-radius: 5px;
+        font-size: 3rem;
+        margin-right: 5rem;
+    }
+
+    .settings-panel-control {
+        &:first-of-type {
+            margin-left: auto;
+        }
+
+        &:last-of-type {
+            margin-right: auto;
+        }
+    }
+
+    .settings-list {
+        outline: solid red 5px;
+        display: flex;
+        flex-direction: row;
+        background-color: rgba(100, 100, 100, 1);
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        color: whitesmoke;
+    }
 }
 
 .settings-panel h3 {
     margin-bottom: 15px;
     color: #2c3e50;
+    text-shadow: 1px 1px 1px white;
 }
 
-.break-settings {
-    margin-bottom: 20px;
-}
 
 .blinds-settings table {
     width: 100%;
@@ -196,12 +234,14 @@ button:hover {
     border-radius: 8px;
     padding: 20px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    margin-top: auto;
+    font-size: 1.3rem;
 }
 
 .next-levels h3 {
     margin-bottom: 15px;
     color: whitesmoke;
+    text-shadow: 1px 1px 1px black;
+
 }
 
 .levels-list {

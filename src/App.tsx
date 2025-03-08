@@ -20,15 +20,62 @@ function App() {
   const [roundTimeInSeconds, setRoundTimeInSeconds] = useState(300);
   const ONE_SECOND = 1000;
 
-  const audioRef = useRef(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
+  // Function to play audio safely
+  const playAudioStv = () => {
+    let reapeatXTimes = 0;
+    audioRef.current.onended = () => {
+      --reapeatXTimes;
+      if (reapeatXTimes > 0) {
+        audioRef.current.play();
+      }
+    }
 
-  useEffect(()=>{
+    audioRef.current.play();
+  }
+
+  /* @deprecated */
+  const playAudio = async () => {
+    if (audioEnabled && audioRef.current) {
+      let playCount = 0;
+      const maxPlays = 3;
+
+      const playSound = async () => {
+        if (playCount < maxPlays) {
+          try {
+            audioRef.current!.currentTime = 0; // Reset to start
+            await audioRef.current!.play();
+            playCount++;
+
+            // Set up the next play after this one finishes
+            if (playCount < maxPlays) {
+              return new Promise((resolve) => {
+                audioRef.current!.onended = () => {
+                  playSound().then(resolve);
+                };
+              });
+            }
+          } catch (error) {
+            console.error('Error playing audio:', error);
+          }
+        }
+      };
+
+      try {
+        await playSound();
+      } catch (error) {
+        console.error('Error in playAudio:', error);
+      }
+    }
+  };
+
+  useEffect(() => {
     console.log('%c...rountime', 'color:gold', roundTimeInSeconds)
     let timer = 0;
     if (active && roundTimeInSeconds) {
-      timer = setInterval(()=>{
-          setRemainingTime(roundTimeInSeconds - 1)
+      timer = setInterval(() => {
+        setRemainingTime(roundTimeInSeconds - 1)
       }, ONE_SECOND)
     }
     if (!roundTimeInSeconds) {
@@ -38,7 +85,7 @@ function App() {
 
   // Handle timer
   useEffect(() => {
-    let interval = null;
+    let interval: NodeJS.Timeout | null = null;
 
     if (active && remainingTime > 0) {
       interval = setInterval(() => {
@@ -51,9 +98,7 @@ function App() {
     } else if ((active && remainingTime === 0) || (breakActive && breakRemaining === 0)) {
       if (active) {
         // Play sound when timer ends
-        if (audioEnabled && audioRef.current) {
-          audioRef.current.play();
-        }
+        playAudio();
 
         if (currentRound < blinds.length - 1) {
           setCurrentRound(prevLevel => prevLevel + 1);
@@ -63,21 +108,23 @@ function App() {
         }
       } else if (breakActive) {
         // End break
-        if (audioEnabled && audioRef.current) {
-          audioRef.current.play();
-        }
+        playAudio();
         setBreakActive(false);
         setBreakRemaining(breakTime);
       }
     }
 
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [active, remainingTime, currentRound, blinds, breakActive, breakRemaining, breakTime, audioEnabled]);
 
-  useLayoutEffect(() => {
-    audioRef.current.play();
+  useLayoutEffect(function playRoundSound() {
+    if (showSettings) {
+      playAudioStv();
+    }
+  }, [showSettings]);
 
-  }, [showSettings])
   // Format time to MM:SS
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -177,8 +224,11 @@ function App() {
   }
   return (
     <div className="app">
-      <audio controls ref={audioRef} src="assets/playful-casino-slot-machine-bonus-2-183919.mp3"/>
-
+      <audio
+        ref={audioRef}
+        src="/assets/jackpot-winner.mp3"
+        preload="auto"
+      />
 
       <div className="header">
         <div className="controls">
@@ -187,8 +237,8 @@ function App() {
           <button onClick={toggleBreak}>
             {breakActive ? 'End Break' : 'Take Break'}
           </button>
-          <button onClick={() => setShowSettings(!showSettings)}>
-            {showSettings ? 'Hide Settingstsx' : 'Settings'}
+          <button id={'toggleSettingsButton'} onClick={() => setShowSettings(!showSettings)}>
+            {showSettings ? 'Hide Settings' : 'Settings'}
           </button>
           <button onClick={() => setAudioEnabled(!audioEnabled)}>
             {audioEnabled ? 'Mute Sound' : 'Enable Sound'}
@@ -228,53 +278,55 @@ function App() {
       {/*{showSettings && <Settings blinds={blinds}*/}
       {/*                           setBlinds={setBlinds}/>*/}
       {/*}*/}
+      <div id={'round-settings'}>
 
-      {showSettings && (
-        <div className="settings-panel">
-          <h3>Settings</h3>
-          <div>
-            <p>round time</p>
-            <select   onChange={(evt)=> {
-              setRoundTimeInSeconds(evt.target.value * 60)}}>
-              {ROUND_TIMES.map(time=>(<option value={time}>{time}</option>))}
-            </select>
-          </div>
-          <div>
-            <p>staring blind</p>
-            <select name={'starting-blind'} onChange={setInitialGameBlinds}>
-              {ALL_BLINDS.slice(0, 5).map(blind => {
-                return (
-                  <option value={blind.small}>{blind.small}</option>
-                )
-              })}
-            </select>
-          </div>
+        {showSettings && (
+          <div className="settings-panel">
+            <h3>Settings</h3>
 
-          <div className="break-settings">
-            <h4>Break Duration (minutes)</h4>
-            <input
-              type="number"
-              value={breakTime / 60}
-              onChange={handleBreakTimeChange}
-              min="1"
-              max="60"
-            />
-          </div>
-
-
-        </div>
-      )}
-
-      <div className="next-levels">
-        <h3>Upcoming Blinds</h3>
-        <div className="levels-list">
-          {blinds.slice(currentRound + 1, currentRound + 4).map((level, index) => (
-            <div key={index} className="level-item">
-              <div>Level {currentRound + index + 2}</div>
-              <div>SB: {level.small} / BB: {level.big}</div>
-              <div>{level.time / 60} min</div>
+            <div className={'settings-panel-control'}>
+              <p>Round time</p>
+              <select onChange={(evt) => {
+                setRoundTimeInSeconds(evt.target.value * 60)
+              }}>
+                {ROUND_TIMES.map(time => (<option value={time}>{time}</option>))}
+              </select>
             </div>
-          ))}
+            <div className={'settings-panel-control'}>
+              <p>Staring blind</p>
+              <select name={'starting-blind'} onChange={setInitialGameBlinds}>
+                {ALL_BLINDS.slice(0, 5).map(blind => {
+                  return (
+                    <option value={blind.small}>{blind.small}</option>
+                  )
+                })}
+              </select>
+            </div>
+
+            <div className="settings-panel-control break-settings">
+              <h4>Break Duration</h4>
+              <input
+                type="number"
+                value={breakTime / 60}
+                onChange={handleBreakTimeChange}
+                min="1"
+                max="60"
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="next-levels">
+          <h3>Upcoming Blinds</h3>
+          <div className="levels-list">
+            {blinds.slice(currentRound + 1, currentRound + 4).map((level, index) => (
+              <div key={index} className="level-item">
+                <div>Level {currentRound + index + 2}</div>
+                <div>SB: {level.small} / BB: {level.big}</div>
+                <div>{level.time / 60} min</div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
