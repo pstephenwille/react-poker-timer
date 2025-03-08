@@ -1,13 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import './App.css'
-import { 
-  ALL_BLINDS, 
-  intializeBlindsForNewGame, 
-  ROUND_TIMES,
-  playAudio,
-  playAudioBak,
-  formatTime
-} from "./utils.ts";
+import { ALL_BLINDS, formatTime, intializeBlindsForNewGame, playAudioBak } from "./utils.ts";
 import { Header } from "./header.tsx";
 import { MainDisplay } from './components/MainDisplay';
 import { RoundSettings } from './components/RoundSettings';
@@ -20,7 +13,7 @@ type Blind = {
 
 function App() {
   // State for timer
-  const [remainingTime, setRemainingTime] = useState(300); // 5 minutes default
+  const [remainingTime, setRemainingTime] = useState(30);
   const [active, setActive] = useState(false);
   const [currentRound, setCurrentRound] = useState(0);
   const [blinds, setBlinds] = useState(ALL_BLINDS);
@@ -31,9 +24,9 @@ function App() {
   const [breakTime, setBreakTime] = useState(300); // 5 minutes default
   const [breakRemaining, setBreakRemaining] = useState(300);
   const [audioEnabled, setAudioEnabled] = useState(true);
-  const [roundTimeInSeconds, setRoundTimeInSeconds] = useState(300); // 5 minutes default
+  const [roundTimeInSeconds, setRoundTimeInSeconds] = useState(30);
 
-  const ONE_SECOND = 1000;
+  const ONE_SECOND = 100;
   const audioRef = useRef<HTMLAudioElement>(null);
 
   // Update remaining time when round time changes
@@ -105,9 +98,9 @@ function App() {
     }
   };
 
-  // Update break time
+  // Update break time - include the multiplication by 60
   const handleBreakTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const time = parseInt(e.target.value, 10) * 60;
+    const time = parseInt(e.target.value, 10) * 60;  // Put the * 60 back
     setBreakTime(time);
     setBreakRemaining(time);
   };
@@ -134,14 +127,6 @@ function App() {
     };
   }, [showSettings, toggleTimer]);
 
-  // Get current blinds based on round number
-  const getCurrentBlinds = () => {
-    // After going through all blinds, stay on the last one
-    if (currentRound >= blinds.length - 1) {
-      return blinds[blinds.length - 1];
-    }
-    return blinds[currentRound];
-  };
 
   return (
     <div className="app">
@@ -151,7 +136,7 @@ function App() {
         preload="auto"
       />
 
-      <Header 
+      <Header
         toggleTimer={toggleTimer}
         active={active}
         resetTimer={resetTimer}
@@ -163,16 +148,16 @@ function App() {
         setAudioEnabled={setAudioEnabled}
       />
 
-      <MainDisplay 
+      <MainDisplay
         breakActive={breakActive}
         breakRemaining={breakRemaining}
         currentRound={currentRound}
-        blinds={[getCurrentBlinds()]}
+        blinds={blinds}
         remainingTime={remainingTime}
         formatTime={formatTime}
       />
 
-      <RoundSettings 
+      <RoundSettings
         showSettings={showSettings}
         breakTime={breakTime}
         handleBreakTimeChange={handleBreakTimeChange}
