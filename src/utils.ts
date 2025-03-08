@@ -20,10 +20,9 @@ export const ALL_BLINDS = [
   { small: 5000, big: 10000, time: 900 },
 ]
 
-// Function to play audio safely
 export const playAudio = (audioRef: React.RefObject<HTMLAudioElement | null>) => {
   if (!audioRef.current) return;
-  
+
   let reapeatXTimes = 3;
   audioRef.current.onended = () => {
     --reapeatXTimes;
@@ -34,43 +33,6 @@ export const playAudio = (audioRef: React.RefObject<HTMLAudioElement | null>) =>
 
   audioRef.current.play();
 }
-
-/* @deprecated */
-export const playAudioBak = async (audioRef: React.RefObject<HTMLAudioElement | null>, audioEnabled: boolean) => {
-  if (audioEnabled && audioRef.current) {
-    let playCount = 0;
-    const maxPlays = 3;
-
-    const playSound = async () => {
-      if (playCount < maxPlays && audioRef.current) {
-        try {
-          audioRef.current.currentTime = 0; // Reset to start
-          await audioRef.current.play();
-          playCount++;
-
-          // Set up the next play after this one finishes
-          if (playCount < maxPlays) {
-            return new Promise((resolve) => {
-              if (audioRef.current) {
-                audioRef.current.onended = () => {
-                  playSound().then(resolve);
-                };
-              }
-            });
-          }
-        } catch (error) {
-          console.error('Error playing audio:', error);
-        }
-      }
-    };
-
-    try {
-      await playSound();
-    } catch (error) {
-      console.error('Error in playAudio:', error);
-    }
-  }
-};
 
 // Format time to MM:SS
 export const formatTime = (seconds: number): string => {

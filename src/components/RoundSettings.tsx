@@ -55,7 +55,7 @@ export const RoundSettings: React.FC<RoundSettingsProps> = ({
           </div>
 
           <div className="settings-panel-control break-settings">
-            <h4>Break Duration</h4>
+            <p>Break Duration</p>
             <input
               type="number"
               value={breakTime / 60}
