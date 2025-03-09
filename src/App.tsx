@@ -1,12 +1,18 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import './App.css'
-import { ALL_BLINDS, formatTime, intializeBlindsForNewGame, playAudio } from "./utils.ts";
-import { Header } from "./header.tsx";
+import {
+  ALL_BLINDS,
+  DEFAULT_STARING_ROUND_TIME_SECONDS,
+  formatTimeMMSS,
+  initializeBlindsForNewGame,
+  playAudio
+} from "./utils.ts";
+import { Header } from "./components/Header.tsx";
 import { MainDisplay } from './components/MainDisplay';
 import { RoundSettings } from './components/RoundSettings';
 
 function App() {
-  const [remainingTime, setRemainingTime] = useState(30);
+  const [remainingTime, setRemainingTime] = useState(600);
   const [active, setActive] = useState(false);
   const [currentRound, setCurrentRound] = useState(0);
   const [blinds, setBlinds] = useState(ALL_BLINDS);
@@ -15,7 +21,7 @@ function App() {
   const [breakTime, setBreakTime] = useState(300); // 5 minutes default
   const [breakRemaining, setBreakRemaining] = useState(300);
   const [audioEnabled, setAudioEnabled] = useState(true);
-  const [roundTimeInSeconds, setRoundTimeInSeconds] = useState(30);
+  const [roundTimeInSeconds, setRoundTimeInSeconds] = useState(DEFAULT_STARING_ROUND_TIME_SECONDS);
 
   const ONE_SECOND = 1000;
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -24,14 +30,15 @@ function App() {
     setRemainingTime(roundTimeInSeconds);
   }, [roundTimeInSeconds]);
 
-  const resetForNextRound = (prevRound) => {
+  const resetForNextRound = useCallback(() => {
     setTimeout(() => {
       setCurrentRound(prevRound => prevRound + 1);
       setRemainingTime(roundTimeInSeconds);
     }, ONE_SECOND);
-  }
+  }, [roundTimeInSeconds])
 
-  const hasRoundEnded = (prevTime) => (prevTime <= 1);
+  const hasRoundEnded = useCallback((prevTime: number) => (prevTime <= 1), []);
+  const toggleTimer = useCallback(() => setActive(!active), [active]);
 
   useEffect(function runGameTimer() {
     let timerId: number | undefined;
@@ -41,8 +48,8 @@ function App() {
         const roundTime = Math.max(0, (remainingTime - 1));
         const isRoundOver = hasRoundEnded(remainingTime)
         if (isRoundOver) {
-          playAudio(audioRef);
-          resetForNextRound(remainingTime)
+          playAudio(audioRef, audioEnabled);
+          resetForNextRound()
         }
         setRemainingTime(roundTime)
       }, ONE_SECOND);
@@ -53,7 +60,7 @@ function App() {
     } else if (breakActive && breakRemaining === 0) {
       // End break
       if (audioRef.current) {
-        playAudio(audioRef);
+        playAudio(audioRef, audioEnabled);
       }
       setBreakActive(false);
       setBreakRemaining(breakTime);
@@ -62,9 +69,18 @@ function App() {
     return () => {
       if (timerId) window.clearInterval(timerId);
     };
-  }, [active, breakActive, breakRemaining, breakTime, audioEnabled, roundTimeInSeconds, blinds.length, remainingTime]);
+  }, [
+    active,
+    breakActive,
+    breakRemaining,
+    breakTime,
+    audioEnabled,
+    roundTimeInSeconds,
+    remainingTime,
+    hasRoundEnded,
+    resetForNextRound
+  ]);
 
-  const toggleTimer = () => setActive(!active);
 
   const resetTimer = () => {
     setActive(false);
@@ -91,35 +107,24 @@ function App() {
   };
 
   const setInitialGameBlinds = (evt: React.ChangeEvent<HTMLSelectElement>) => {
-    const gameBlinds = intializeBlindsForNewGame(parseInt(evt.target.value, 10));
+    const gameBlinds = initializeBlindsForNewGame(parseInt(evt.target.value, 10));
     setBlinds(gameBlinds);
   }
 
-  const handleKeyPress = (event: KeyboardEvent) => {
-    console.log('event', event);
-    
-    if (event.code === 'Space') {
-      event.preventDefault(); // Prevent page scroll
-      toggleTimer();
-    }
-  };
+  useEffect(function spaceBarPausesToggle() {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (event.code === 'Space') {
+        event.preventDefault(); // Prevent page scroll
+        toggleTimer();
+      }
+    };
 
-  window.addEventListener('keydown', handleKeyPress);
+    window.addEventListener('keyup', handleKeyPress);
 
-  // useLayoutEffect(function spaceBarPausesToggle() {
-  //   const handleKeyPress = (event: KeyboardEvent) => {
-  //     if (event.code === 'Space') {
-  //       event.preventDefault(); // Prevent page scroll
-  //       toggleTimer();
-  //     }
-  //   };
-
-  //   window.addEventListener('keydown', handleKeyPress);
-
-  //   return () => {
-  //     window.removeEventListener('keydown', handleKeyPress);
-  //   };
-  // }, []);
+    return () => {
+      window.removeEventListener('keyup', handleKeyPress);
+    };
+  }, [toggleTimer]);
 
 
   return (
@@ -148,7 +153,7 @@ function App() {
         currentRound={currentRound}
         blinds={blinds}
         remainingTime={remainingTime}
-        formatTime={formatTime}
+        formatTimeMMSS={formatTimeMMSS}
       />
 
       <RoundSettings

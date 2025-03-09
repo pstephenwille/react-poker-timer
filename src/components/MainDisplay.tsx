@@ -1,5 +1,4 @@
 import React from 'react';
-import { ALL_BLINDS } from "../utils.ts";
 
 interface MainDisplayProps {
   breakActive: boolean;
@@ -10,26 +9,25 @@ interface MainDisplayProps {
     big: number;
   }>;
   remainingTime: number;
-  formatTime: (seconds: number) => string;
+  formatTimeMMSS: (seconds: number) => string;
 }
 
 export const MainDisplay: React.FC<MainDisplayProps> = ({
   breakActive,
   breakRemaining,
   currentRound,
+  blinds,
   remainingTime,
-  formatTime,
+  formatTimeMMSS,
 }) => {
-  const currentBlind = ALL_BLINDS[currentRound]
-    ?ALL_BLINDS[currentRound]
-    : ALL_BLINDS.at(-1)
+  const currentBlind = blinds[currentRound] || blinds.at(-1);
 
   return (
     <div id={'main-display'} className="main-display">
       {breakActive ? (
         <div className="break-display">
           <h2>BREAK TIME</h2>
-          <div className="time-remaining">{formatTime(breakRemaining)}</div>
+          <div className="time-remaining">{formatTimeMMSS(breakRemaining)}</div>
         </div>
       ) : (
         <>
@@ -43,7 +41,7 @@ export const MainDisplay: React.FC<MainDisplayProps> = ({
               <p className={'current-level'}>
                 Round: {currentRound + 1}
               </p>
-              {formatTime(remainingTime)}
+              {formatTimeMMSS(remainingTime)}
             </div>
 
             <div className="big-blind">
