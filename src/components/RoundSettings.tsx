@@ -32,7 +32,7 @@ export const RoundSettings: React.FC<RoundSettingsProps> = ({
           <h3>Settings</h3>
 
           <div className={'settings-panel-control'}>
-            <p>Round time</p>
+            <h3>Round time</h3>
             <select 
               onChange={(evt) => {
                 const minutes = parseInt(evt.target.value, 10);
@@ -46,7 +46,7 @@ export const RoundSettings: React.FC<RoundSettingsProps> = ({
             </select>
           </div>
           <div className={'settings-panel-control'}>
-            <p>Starting blind</p>
+            <h3>Starting blind</h3>
             <select name={'starting-blind'} onChange={setInitialGameBlinds}>
               {ALL_BLINDS.slice(0, 5).map(blind => (
                 <option key={blind.small} value={blind.small}>{blind.small}</option>
@@ -55,7 +55,7 @@ export const RoundSettings: React.FC<RoundSettingsProps> = ({
           </div>
 
           <div className="settings-panel-control break-settings">
-            <p>Break Duration</p>
+            <h3>Break Duration</h3>
             <input
               type="number"
               value={breakTime / 60}

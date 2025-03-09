@@ -1,5 +1,4 @@
 import React from 'react';
-import { ALL_BLINDS } from "../utils.ts";
 
 interface MainDisplayProps {
   breakActive: boolean;
@@ -17,12 +16,11 @@ export const MainDisplay: React.FC<MainDisplayProps> = ({
   breakActive,
   breakRemaining,
   currentRound,
+  blinds,
   remainingTime,
   formatTime,
 }) => {
-  const currentBlind = ALL_BLINDS[currentRound]
-    ?ALL_BLINDS[currentRound]
-    : ALL_BLINDS.at(-1)
+  const currentBlind = blinds[currentRound] || blinds.at(-1);
 
   return (
     <div id={'main-display'} className="main-display">
