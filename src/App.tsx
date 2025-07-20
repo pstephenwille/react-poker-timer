@@ -16,13 +16,8 @@ function App() {
   const [breakRemaining, setBreakRemaining] = useState(300);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [roundTimeInSeconds, setRoundTimeInSeconds] = useState(30);
-
   const ONE_SECOND = 1000;
   const audioRef = useRef<HTMLAudioElement>(null);
-
-  useEffect(function updateTimeOnRoundTimeChanges() {
-    setRemainingTime(roundTimeInSeconds);
-  }, [roundTimeInSeconds]);
 
   const resetForNextRound = useCallback(() => {
     setTimeout(() => {
@@ -30,9 +25,53 @@ function App() {
       setRemainingTime(roundTimeInSeconds);
     }, ONE_SECOND);
   }, [roundTimeInSeconds])
-
   const hasRoundEnded = useCallback((prevTime: number) => (prevTime <= 1), []);
   const toggleTimer = useCallback(() => setActive(!active), [active]);
+
+  const resetTimer = () => {
+    setActive(false);
+    setCurrentRound(0);
+    setRemainingTime(roundTimeInSeconds);
+    setBreakActive(false);
+    setBreakRemaining(breakTime);
+  };
+  const toggleBreak = () => {
+    if (breakActive) {
+      setBreakActive(false);
+      setBreakRemaining(breakTime);
+    } else {
+      setActive(false);
+      setBreakActive(true);
+    }
+  };
+  const handleBreakTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const time = parseInt(e.target.value, 10) * 60;
+    setBreakTime(time);
+    setBreakRemaining(time);
+  };
+  const setInitialGameBlinds = (evt: React.ChangeEvent<HTMLSelectElement>) => {
+    const gameBlinds = initializeBlindsForNewGame(parseInt(evt.target.value, 10));
+    setBlinds(gameBlinds);
+  }
+
+  useEffect(function spaceBarPausesToggle() {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (event.code === 'Space') {
+        event.preventDefault(); // Prevent page scroll
+        toggleTimer();
+      }
+    };
+
+    window.addEventListener('keyup', handleKeyPress);
+
+    return () => {
+      window.removeEventListener('keyup', handleKeyPress);
+    };
+  }, [toggleTimer]);
+
+  useEffect(function updateTimeOnRoundTimeChanges() {
+    setRemainingTime(roundTimeInSeconds);
+  }, [roundTimeInSeconds]);
 
   useEffect(function runGameTimer() {
     let timerId: number | undefined;
@@ -74,51 +113,6 @@ function App() {
     hasRoundEnded,
     resetForNextRound
   ]);
-
-
-  const resetTimer = () => {
-    setActive(false);
-    setCurrentRound(0);
-    setRemainingTime(roundTimeInSeconds);
-    setBreakActive(false);
-    setBreakRemaining(breakTime);
-  };
-
-  const toggleBreak = () => {
-    if (breakActive) {
-      setBreakActive(false);
-      setBreakRemaining(breakTime);
-    } else {
-      setActive(false);
-      setBreakActive(true);
-    }
-  };
-
-  const handleBreakTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const time = parseInt(e.target.value, 10) * 60;
-    setBreakTime(time);
-    setBreakRemaining(time);
-  };
-
-  const setInitialGameBlinds = (evt: React.ChangeEvent<HTMLSelectElement>) => {
-    const gameBlinds = initializeBlindsForNewGame(parseInt(evt.target.value, 10));
-    setBlinds(gameBlinds);
-  }
-
-  useEffect(function spaceBarPausesToggle() {
-    const handleKeyPress = (event: KeyboardEvent) => {
-      if (event.code === 'Space') {
-        event.preventDefault(); // Prevent page scroll
-        toggleTimer();
-      }
-    };
-
-    window.addEventListener('keyup', handleKeyPress);
-
-    return () => {
-      window.removeEventListener('keyup', handleKeyPress);
-    };
-  }, [toggleTimer]);
 
 
   return (

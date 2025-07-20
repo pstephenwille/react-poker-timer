@@ -10,11 +10,6 @@ export const ALL_BLINDS: Array<{ small: number, big: number }> = [
   { small: 200, big: 400 },
   { small: 400, big: 800 },
   { small: 1000, big: 2000 },
-  { small: 1500, big: 3000 },
-  { small: 2000, big: 4000 },
-  { small: 3000, big: 6000 },
-  { small: 4000, big: 8000 },
-  { small: 5000, big: 10000 }
 ]
 
 export const playAudio = (audioRef: React.RefObject<HTMLAudioElement | null>, audioEnabled: boolean = false) => {
