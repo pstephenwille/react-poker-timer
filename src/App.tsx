@@ -4,6 +4,42 @@ import { ALL_BLINDS, formatTimeMMSS, initializeBlindsForNewGame, playAudio, ROUN
 import { Header } from "./components/Header.tsx";
 import { MainDisplay } from './components/MainDisplay';
 import { RoundSettings } from './components/RoundSettings';
+import { confetti } from "@tsparticles/confetti";
+console.log('%c...confetti', 'color:gold',   confetti);
+const brandColors = ['#FFC5FF', "#FFFF6B", "#00e5ff", '#ffffff', '#ccff00'];
+function startConfettiCelebration(durationInSeconds = 3) {
+  const endTime = Date.now() + durationInSeconds * 1000;
+
+  function frame() {
+    // Launch a small burst from the left edge
+    confetti({
+      particleCount: 5,
+      angle: 60,
+      startVelocity: 75,
+      spread: 100,
+      origin: { x: 0, y: 0.9 },
+      colors: brandColors
+    });
+
+    // Launch a small burst from the right edge
+    confetti({
+      particleCount: 5,
+      startVelocity: 75,
+      angle: 120,
+      spread: 100,
+      origin: { x: 1, y: 0.9 },
+      colors: brandColors
+    });
+
+    // Keep looping until the timer expires
+    if (Date.now() < endTime) {
+      requestAnimationFrame(frame);
+    }
+  }
+
+  requestAnimationFrame(frame);
+}
+
 
 function App() {
   const [remainingTime, setRemainingTime] = useState(30);
@@ -15,8 +51,9 @@ function App() {
   const [breakTime, setBreakTime] = useState(600); // 5 minutes default
   const [breakRemaining, setBreakRemaining] = useState(600);
   const [audioEnabled, setAudioEnabled] = useState(true);
-  const [roundTimeInSeconds, setRoundTimeInSeconds] = useState(30);
+  const [roundTimeInSeconds, setRoundTimeInSeconds] = useState(600 );
   const ONE_SECOND = 1_000;
+  const initRoundTimeDisplay = roundTimeInSeconds / 60;
   const audioRef = useRef<HTMLAudioElement>(null);
 
   const resetForNextRound = useCallback(() => {
@@ -57,8 +94,15 @@ function App() {
     setBlinds(gameBlinds);
   }
 
-  useEffect(function spaceBarPausesToggle() {
+
+  useEffect(function handleKeyStrokes() {
     const handleKeyPress = (event: KeyboardEvent) => {
+      if(event.code === 'Escape'){
+        if (settingsToggle) {
+          toggleSettings();
+        }
+      }
+
       if (event.code === 'Space') {
         event.preventDefault(); // Prevent page scroll
         toggleTimer();
@@ -70,19 +114,21 @@ function App() {
     return () => {
       window.removeEventListener('keyup', handleKeyPress);
     };
-  }, [toggleTimer]);
+  }, [toggleTimer, settingsToggle]);
 
   useEffect(function updateTimeOnRoundTimeChanges() {
     setRemainingTime(roundTimeInSeconds);
   }, [roundTimeInSeconds]);
 
   useEffect(function triggerColorUpBreak() {
-    if (currentRound === 4) {
+    console.log('%c...blinds', 'color:gold',   blinds, currentRound);
+    
+    if (blinds[currentRound].small === 25) {
       console.log('%c...blinds color-up', 'color:gold');
       // setBreakActive(breakActive)
       toggleBreak()
     }
-  }, [currentRound]);
+  }, [blinds, currentRound]);
 
   useEffect(function runGameTimer() {
     let timerId: number | undefined;
@@ -94,6 +140,7 @@ function App() {
         ));
         const isRoundOver = hasRoundEnded(remainingTime)
         if (isRoundOver) {
+          startConfettiCelebration()
           playAudio(audioRef, audioEnabled);
           resetForNextRound()
         }
@@ -142,7 +189,7 @@ function App() {
                   const minutes = parseInt(evt.target.value, 10);
                   setRoundTimeInSeconds(minutes * 60);
                 }}
-                defaultValue={5}
+                defaultValue={initRoundTimeDisplay}
               >
                 {ROUND_TIMES.map(time => (
                   <option key={time} value={time}>{time}</option>
