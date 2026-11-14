@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import './App.css'
-import { ALL_BLINDS, formatTimeMMSS, initializeBlindsForNewGame, playAudio } from "./utils.ts";
+import { ALL_BLINDS, formatTimeMMSS, initializeBlindsForNewGame, playAudio, ROUND_TIMES } from "./utils.ts";
 import { Header } from "./components/Header.tsx";
 import { MainDisplay } from './components/MainDisplay';
 import { RoundSettings } from './components/RoundSettings';
@@ -10,13 +10,13 @@ function App() {
   const [active, setActive] = useState(false);
   const [currentRound, setCurrentRound] = useState(0);
   const [blinds, setBlinds] = useState(ALL_BLINDS);
-  const [showSettings, setShowSettings] = useState(false);
+  const [settingsToggle, toggleSettings] = useReducer((toggle)=>!toggle, false);
   const [breakActive, setBreakActive] = useState(false);
-  const [breakTime, setBreakTime] = useState(300); // 5 minutes default
-  const [breakRemaining, setBreakRemaining] = useState(300);
+  const [breakTime, setBreakTime] = useState(600); // 5 minutes default
+  const [breakRemaining, setBreakRemaining] = useState(600);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [roundTimeInSeconds, setRoundTimeInSeconds] = useState(30);
-  const ONE_SECOND = 1000;
+  const ONE_SECOND = 1_000;
   const audioRef = useRef<HTMLAudioElement>(null);
 
   const resetForNextRound = useCallback(() => {
@@ -25,7 +25,9 @@ function App() {
       setRemainingTime(roundTimeInSeconds);
     }, ONE_SECOND);
   }, [roundTimeInSeconds])
-  const hasRoundEnded = useCallback((prevTime: number) => (prevTime <= 1), []);
+  const hasRoundEnded = useCallback((prevTime: number) => (
+    prevTime <= 1
+  ), []);
   const toggleTimer = useCallback(() => setActive(!active), [active]);
 
   const resetTimer = () => {
@@ -35,6 +37,7 @@ function App() {
     setBreakActive(false);
     setBreakRemaining(breakTime);
   };
+
   const toggleBreak = () => {
     if (breakActive) {
       setBreakActive(false);
@@ -73,12 +76,22 @@ function App() {
     setRemainingTime(roundTimeInSeconds);
   }, [roundTimeInSeconds]);
 
+  useEffect(function triggerColorUpBreak() {
+    if (currentRound === 4) {
+      console.log('%c...blinds color-up', 'color:gold');
+      // setBreakActive(breakActive)
+      toggleBreak()
+    }
+  }, [currentRound]);
+
   useEffect(function runGameTimer() {
     let timerId: number | undefined;
 
     if (active && remainingTime > 0) {
       timerId = window.setInterval(() => {
-        const roundTime = Math.max(0, (remainingTime - 1));
+        const roundTime = Math.max(0, (
+          remainingTime - 1
+        ));
         const isRoundOver = hasRoundEnded(remainingTime)
         if (isRoundOver) {
           playAudio(audioRef, audioEnabled);
@@ -97,6 +110,7 @@ function App() {
       }
       setBreakActive(false);
       setBreakRemaining(breakTime);
+      setActive(true)
     }
 
     return () => {
@@ -117,6 +131,46 @@ function App() {
 
   return (
     <div className="app">
+      {settingsToggle && (
+        <div id={'lightbox'}>
+        <button onClick={toggleSettings}><h4>X</h4></button>
+          <div className="settings-panel">
+            <div className={'settings-panel-control'}>
+              <h3>Round time</h3>
+              <select
+                onChange={(evt) => {
+                  const minutes = parseInt(evt.target.value, 10);
+                  setRoundTimeInSeconds(minutes * 60);
+                }}
+                defaultValue={5}
+              >
+                {ROUND_TIMES.map(time => (
+                  <option key={time} value={time}>{time}</option>
+                ))}
+              </select>
+            </div>
+            <div className={'settings-panel-control'}>
+              <h3>Starting blind</h3>
+              <select name={'starting-blind'} onChange={setInitialGameBlinds}>
+                {ALL_BLINDS.slice(0, 5).map(blind => (
+                  <option key={blind.small} value={blind.small}>{blind.small}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="settings-panel-control break-settings">
+              <h3>Break Duration</h3>
+              <input
+                type="number"
+                value={breakTime / 60}
+                onChange={handleBreakTimeChange}
+                min="1"
+                max="60"
+              />
+            </div>
+          </div>
+        </div>
+      )}
       <audio
         ref={audioRef}
         src="/assets/jackpot-winner.mp3"
@@ -129,8 +183,8 @@ function App() {
         resetTimer={resetTimer}
         toggleBreak={toggleBreak}
         breakActive={breakActive}
-        showSettings={showSettings}
-        setShowSettings={setShowSettings}
+        showSettings={settingsToggle}
+        setShowSettings={toggleSettings}
         audioEnabled={audioEnabled}
         setAudioEnabled={setAudioEnabled}
       />
@@ -145,7 +199,7 @@ function App() {
       />
 
       <RoundSettings
-        showSettings={showSettings}
+        showSettings={settingsToggle}
         breakTime={breakTime}
         handleBreakTimeChange={handleBreakTimeChange}
         setRoundTimeInSeconds={setRoundTimeInSeconds}

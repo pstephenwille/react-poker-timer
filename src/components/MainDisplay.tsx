@@ -33,7 +33,7 @@ export const MainDisplay: React.FC<MainDisplayProps> = ({
         <>
           <div className="blinds-display">
             <div className="small-blind">
-              Small Blind
+              <p>Small Blind</p>
               <h2>{currentBlind.small}</h2>
             </div>
 
@@ -41,11 +41,11 @@ export const MainDisplay: React.FC<MainDisplayProps> = ({
               <p className={'current-level'}>
                 Round: {currentRound + 1}
               </p>
-              {formatTime(remainingTime)}
+              <h2>{formatTime(remainingTime)}</h2>
             </div>
 
             <div className="big-blind">
-              Big Blind
+              <p>Big Blind</p>
               <h2>{currentBlind.big}</h2>
             </div>
           </div>
