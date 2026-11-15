@@ -14,20 +14,22 @@ interface RoundSettingsProps {
   }>;
 }
 
-export const RoundSettings: React.FC<RoundSettingsProps> = ({
+export const BlindsSchedule: React.FC<any> = ({
   roundTimeInSeconds,
   currentRound,
   blinds,
 }) => {
+
+  const remainingBlind = blinds.length <= currentRound +4
+  ? blinds
+    : blinds.slice(currentRound + 1, currentRound + 4)
+
   return (
-
-    <div id={'round-settings'}>
-
-
+    <div id={'blinds-schedule'}>
       <div className="next-levels">
         <h3>Upcoming Blinds</h3>
         <div className="levels-list">
-          {blinds.slice(currentRound + 1, currentRound + 4).map((level, index) => (
+          {remainingBlind.map((level, index) => (
             <div key={index} className="level-item">
               <div>Level {currentRound + index + 2}</div>
               <p>SB: {level.small} / BB: {level.big}</p>
