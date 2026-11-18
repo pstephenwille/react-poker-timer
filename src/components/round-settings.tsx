@@ -1,19 +1,28 @@
-import { ALL_BLINDS,  ROUND_TIMES } from '../utils';
+import { useGame } from '../new-game-context';
+import { ALL_BLINDS, ROUND_TIMES } from '../utils';
 
-export function RoundSettings({
-  isOpen,
-  onClose,
-  initRoundTimeDisplay,
-  setRoundTimeInSeconds,
-  setInitialGameBlinds,
-  breakTime,
-  handleBreakTimeChange,
-}) {
-  if (!isOpen) return null;
+export function RoundSettings() {
+  const game = useGame()
 
   const handleClose = (evt) => {
     evt.stopPropagation();
-    onClose();
+    game.toggleSettings()
+  };
+
+  const initializeBlindsForNewGame = (selectedBlind: number) => {
+    const gameBlinds = ALL_BLINDS.filter(blind => blind.small >= selectedBlind);
+    return gameBlinds;
+  }
+
+  const setInitialGameBlinds = (evt: React.ChangeEvent<HTMLSelectElement>) => {
+    const gameBlinds = initializeBlindsForNewGame(parseInt(evt.target.value, 10));
+    game.setBlinds(gameBlinds);
+  }
+
+  const handleBreakTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const minutes = parseInt(e.target.value, 10) * 60;
+    game.setBreakDurationSeconds(minutes);
+    // setBreakRemaining(time);
   };
 
   return (
@@ -22,18 +31,16 @@ export function RoundSettings({
         <h4 id="close-settings">X</h4>
       </button>
 
-      <div
-        className="settings-panel"
-        onClick={(evt) => evt.stopPropagation()}
-      >
+      <div className="settings-panel"
+        onClick={(evt) => evt.stopPropagation()}>
         <div className="settings-panel-control">
           <h3>Round time</h3>
           <select
             onChange={(evt) => {
               const minutes = parseInt(evt.target.value, 10);
-              setRoundTimeInSeconds(minutes * 60);
+              game.setRoundDurationSeconds(minutes * 60);
             }}
-            defaultValue={initRoundTimeDisplay}
+            defaultValue={10}
           >
             {ROUND_TIMES.map((time) => (
               <option key={time} value={time}>
@@ -58,7 +65,7 @@ export function RoundSettings({
           <h3>Break Duration</h3>
           <input
             type="number"
-            value={breakTime / 60}
+            value={10}
             onChange={handleBreakTimeChange}
             min="1"
             max="60"

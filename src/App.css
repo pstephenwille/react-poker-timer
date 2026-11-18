@@ -140,6 +140,7 @@ button:hover {
 }
 
 .break-display {
+    text-align: center;
     font-size: 3rem;
     color: white;
     .time-remaining{

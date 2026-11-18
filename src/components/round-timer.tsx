@@ -1,49 +1,49 @@
-import { act, useEffect, useMemo, useRef, useState } from 'react';
-import { formatTimeMMSS, playAudio, startConfettiCelebration } from '../utils';
+import { useEffect, useMemo, useState } from 'react';
+import { formatTimeMMSS, ONE_SECOND, playAudio, startConfettiCelebration } from '../utils';
+import { useGame } from '../new-game-context';
 
 
-
-export const RoundTimer = ({
-  audioRef,
-  audioEnabled,
-  roundTimeInSeconds,
-  active,
-  handleRoundEnd,
-  currentBlind,
-  currentRound,
-  resetGameToggle,
-  toggleBreak
-}) => {
+export const RoundTimer = () => {
+  const game = useGame()
+  const gameIsRunning = (
+    game.status === 'running'
+  )
+  const currentBlind = game.blinds[game.currentRound]
+  console.log('%c...xxx', 'color:gold', gameIsRunning, currentBlind);
 
   const [smallBlind, bigBlind] = useBlindsDisplayHook(currentBlind)
-  const [remainingTime, setRemainingTime] = useState(roundTimeInSeconds)
-  console.log('%c...round-timer', 'color:gold',remainingTime, roundTimeInSeconds);
+  const [remainingTime, setRemainingTime] = useState(game.roundDurationSeconds)
 
-  useEffect(function updateRoundTimePerUserChoice(){
-      setRemainingTime(roundTimeInSeconds)
-  }, [roundTimeInSeconds])
-
-useEffect(()=>{
-  setRemainingTime(roundTimeInSeconds)
-}, [resetGameToggle])
-
-  useEffect(function triggerBreakToColorUp() {
-    if (currentBlind.small === 25) {
-      toggleBreak()
-    }
-  }, [currentBlind]);
+  useEffect(function updateRoundTimePerUserChoice() {
+    setRemainingTime(game.roundDurationSeconds)
+  }, [game.roundDurationSeconds])
 
   useEffect(() => {
-    if (!active) return;
+    // reset to default
+    setRemainingTime(game.roundDurationSeconds)
+  }, [/*resetGameToggle*/])
+
+  useEffect(function triggerBreakToColorUp() {
+    if (game.currentRound === 0) return
+
+    if (currentBlind.small === 25) {
+      game.toggleBreakIsActive({ startBreak: true })
+    }
+  }, [currentBlind, game.currentRound]);
+
+  useEffect(() => {
+    if (!gameIsRunning) return;
 
     const timerId = window.setInterval(() => {
+      console.log('%c...timer', 'color:gold', game.roundDurationSeconds);
+
       if (remainingTime <= 1) {
         startConfettiCelebration()
-        playAudio(audioRef, true);
+        playAudio(game.audioRef, true);
 
         pauseBetweenRounds(3_000, () => {
-          setRemainingTime(roundTimeInSeconds)
-          handleRoundEnd()
+          setRemainingTime(game.roundDurationSeconds)
+          // handleRoundEnd()
         })
       }
       if (remainingTime > 0) {
@@ -51,25 +51,29 @@ useEffect(()=>{
       } else {
         clearInterval(timerId)
       }
-    }, 1_00)
+    }, ONE_SECOND)
 
     return () => {
-      clearInterval(timerId)}
-  }, [active, remainingTime])
+      clearInterval(timerId)
+    }
+  }, [gameIsRunning, remainingTime])
 
   return (
-    <div className="blinds-display">
-      {smallBlind}
+    <div id={'main-display'} className="main-display">
 
-      <div className="time-remaining">
-        <p className={'current-level'}>
-          Round: {currentRound + 1}
-        </p>
-        <h2>{formatTimeMMSS(remainingTime)}</h2>
+      <div className="blinds-display">
+        {smallBlind}
+
+        <div className="time-remaining">
+          <p className={'current-level'}>
+            Round: {game.currentRound + 1}
+          </p>
+          <h2>{formatTimeMMSS(remainingTime)}</h2>
+        </div>
+
+        {bigBlind}
+
       </div>
-
-      {bigBlind}
-
     </div>
   )
 }

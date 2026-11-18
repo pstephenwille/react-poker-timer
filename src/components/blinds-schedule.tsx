@@ -20,8 +20,10 @@ export const BlindsSchedule: React.FC<any> = ({
   blinds,
 }) => {
 
-  const remainingBlind = blinds.length <= currentRound +4
-  ? blinds
+  const isLastBlind = currentRound + 1 >= blinds.length;
+
+  const remainingBlinds = isLastBlind
+    ? [blinds.at(-1)]
     : blinds.slice(currentRound + 1, currentRound + 4)
 
   return (
@@ -29,13 +31,16 @@ export const BlindsSchedule: React.FC<any> = ({
       <div className="next-levels">
         <h3>Upcoming Blinds</h3>
         <div className="levels-list">
-          {remainingBlind.map((level, index) => (
-            <div key={index} className="level-item">
-              <div>Level {currentRound + index + 2}</div>
-              <p>SB: {level.small} / BB: {level.big}</p>
-              <p>{roundTimeInSeconds / 60} min</p>
-            </div>
-          ))}
+          {remainingBlinds.map((level, index) => {
+
+            return (
+              <div key={index} className="level-item">
+                <div>Level {currentRound + index + 2}</div>
+                <p>{level.small} / {level.big}</p>
+                <p>{roundTimeInSeconds / 60} min Round</p>
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>

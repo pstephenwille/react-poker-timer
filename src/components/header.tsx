@@ -1,6 +1,6 @@
 import { RoundSettings } from './round-settings';
-import { ALL_BLINDS, ROUND_TIMES } from '../utils';
 import { useEffect, useReducer } from 'react';
+import { BreakTimer } from './break-timer';
 
 export const Header = ({
   initRoundTimeDisplay,
@@ -9,22 +9,17 @@ export const Header = ({
   handleBreakTimeChange,
   breakTime,
   /* --- */
-                         toggleTimer,
+                         setRoundIsActive,
                          active,
                          resetTimer,
                          toggleBreak,
-                         breakActive,
-                         showSettings,
-                         setShowSettings,
+                         breakActive: breakIsActive,
                          audioEnabled,
                          setAudioEnabled
                        }) => {
-  console.log('%c...header.tsx', 'color:gray');
   const [settingsToggle, toggleSettings] = useReducer((toggle) => !toggle, false);
 
   useEffect(function handleKeyStrokes() {
-    console.log('%c...header-key-listner', 'color:gray');
-
     const handleKeyPress = (event: KeyboardEvent) => {
       if (event.code === 'Escape') {
         if (settingsToggle) {
@@ -34,7 +29,7 @@ export const Header = ({
 
       if (event.code === 'Space') {
         event.preventDefault(); // Prevent page scroll
-        toggleTimer();
+        setRoundIsActive();
       }
     };
 
@@ -43,16 +38,16 @@ export const Header = ({
     return () => {
       window.removeEventListener('keyup', handleKeyPress);
     };
-  }, [toggleTimer, settingsToggle]);
-
+  }, [setRoundIsActive, settingsToggle]);
+  
   return (
     <>
     <div className="header">
       <div className="controls">
-        <button onClick={toggleTimer}>{active ? 'Pause' : 'Start'}</button>
+        <button onClick={setRoundIsActive}>{active ? 'Pause' : 'Start'}</button>
         <button onClick={resetTimer}>Reset</button>
         <button onClick={toggleBreak}>
-          {breakActive ? 'End Break' : 'Take Break'}
+          {breakIsActive ? 'End Break' : 'Take Break'}
         </button>
         <button id={'toggleSettingsButton'} onClick={() => toggleSettings()}>
           {settingsToggle ? 'Hide Settings' : 'Settings'}
@@ -63,6 +58,10 @@ export const Header = ({
       </div>
     </div>
 
+      {breakIsActive &&(
+        <BreakTimer breakIsActive={breakIsActive} breakTime={breakTime} toggleBreak={toggleBreak} />
+      )}
+      
       {settingsToggle &&
           <RoundSettings
               isOpen={settingsToggle}
