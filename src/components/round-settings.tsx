@@ -1,11 +1,5 @@
-import { useGameEngine } from '../game-engine-context';
-import { ALL_BLINDS, ROUND_TIMES } from '../utils';
-
-const BREAK_MINUTES_MIN = 1;
-const BREAK_MINUTES_MAX = 60;
-
-const clampToAllowedBreakMinutes = (minutes: number) =>
-  Math.min(BREAK_MINUTES_MAX, Math.max(BREAK_MINUTES_MIN, minutes));
+import { useGameEngine } from '../game-engine';
+import { ALL_BLINDS, BREAK_TIMES, ROUND_TIMES } from '../utils';
 
 export function RoundSettings() {
   const engine = useGameEngine()
@@ -24,12 +18,9 @@ export function RoundSettings() {
     engine.setStartingChips(parseInt(evt.target.value, 10));
   }
 
-  const handleBreakTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const minutes = parseInt(e.target.value, 10);
-    const isEmptyOrPartialEntry = Number.isNaN(minutes);
-    if (isEmptyOrPartialEntry) return;
-
-    engine.setBreakDurationSeconds(clampToAllowedBreakMinutes(minutes) * 60);
+  const setBreakTime = (evt: React.ChangeEvent<HTMLSelectElement>) => {
+    const minutes = parseInt(evt.target.value, 10);
+    engine.setBreakDurationSeconds(minutes * 60);
   };
 
   return (
@@ -65,13 +56,16 @@ export function RoundSettings() {
 
         <div className="settings-panel-control break-settings">
           <h3>Break Duration</h3>
-          <input
-            type="number"
+          <select
+            onChange={setBreakTime}
             defaultValue={engine.breakDurationSeconds / 60}
-            onChange={handleBreakTimeChange}
-            min={BREAK_MINUTES_MIN}
-            max={BREAK_MINUTES_MAX}
-          />
+          >
+            {BREAK_TIMES.map((time) => (
+              <option key={time} value={time}>
+                {time}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
     </div>

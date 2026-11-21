@@ -1,10 +1,11 @@
 import React from 'react';
 import { confetti } from '@tsparticles/confetti';
 
-export const TIME_COUNTER_MULTIPLIER = 50;
+export const TIME_COUNTER_MULTIPLIER = 1;
 export const DEFAULT_ROUND_SECONDS = 600
 export const DEFAULT_BREAK_SECONDS = 600
 export const ROUND_TIMES = [1, 5, 10, 15, 20, 25, 30];
+export const BREAK_TIMES = [1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
 export const ALL_BLINDS: Array<{ small: number, big: number }> = [
   { small: 5, big: 10 },
   { small: 10, big: 20 },

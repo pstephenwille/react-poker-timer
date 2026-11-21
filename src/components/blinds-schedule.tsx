@@ -1,5 +1,5 @@
 import React from 'react';
-import { useGameEngine } from '../game-engine-context';
+import { useGameEngine } from '../game-engine';
 
 export const BlindsSchedule: React.FC<any> = () => {
   const engine = useGameEngine()

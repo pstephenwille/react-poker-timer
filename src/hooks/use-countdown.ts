@@ -45,6 +45,9 @@ export function useCountdown({ durationSeconds, isRunning, onComplete }: Countdo
     };
 
     const rememberExactTimeLeftSoResumingLosesNothing = () => {
+      const savingNowWouldOverwriteTheUpcomingReset = hasCompleted;
+      if (savingNowWouldOverwriteTheUpcomingReset) return;
+
       exactRemainingMillisRef.current = measureExactMillisLeft();
     };
 
@@ -52,9 +55,7 @@ export function useCountdown({ durationSeconds, isRunning, onComplete }: Countdo
 
     return function stopTicking() {
       clearInterval(intervalId);
-
-      const savingNowWouldOverwriteTheUpcomingReset = hasCompleted;
-      if (!savingNowWouldOverwriteTheUpcomingReset) rememberExactTimeLeftSoResumingLosesNothing();
+      rememberExactTimeLeftSoResumingLosesNothing();
     };
   }, [isRunning, resetGeneration]);
 

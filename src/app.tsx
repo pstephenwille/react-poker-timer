@@ -2,7 +2,7 @@ import { Header } from './components/header';
 import { MainDisplay } from './components/main-display';
 import './App.css'
 import { BlindsSchedule } from './components/blinds-schedule';
-import { useGameEngine } from './game-engine-context';
+import { useGameEngine } from './game-engine';
 import { useEffect, useEffectEvent } from 'react';
 
 const isTypingInFormField = (target: EventTarget | null) =>

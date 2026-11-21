@@ -5,7 +5,7 @@ import {
   playAudio,
   startConfettiCelebration,
 } from '../utils';
-import { useGameEngine } from '../game-engine-context';
+import { useGameEngine } from '../game-engine';
 import { useCountdown } from '../hooks/use-countdown';
 
 const PAUSE_BETWEEN_ROUNDS_MILLIS = 3_000;

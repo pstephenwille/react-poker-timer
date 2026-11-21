@@ -1,6 +1,6 @@
 import { useEffect, useEffectEvent } from 'react';
 import { formatTimeMMSS, pauseBetweenRounds, playAudio } from '../utils';
-import { useGameEngine } from '../game-engine-context';
+import { useGameEngine } from '../game-engine';
 import { useCountdown } from '../hooks/use-countdown';
 
 const PAUSE_AFTER_BREAK_HORN_MILLIS = 1_500;

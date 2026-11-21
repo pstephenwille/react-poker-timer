@@ -1,6 +1,6 @@
 import React from 'react';
 import { RoundTimer } from './round-timer';
-import { useGameEngine } from '../game-engine-context';
+import { useGameEngine } from '../game-engine';
 
 export const MainDisplay: React.FC<any> = () => {
   const engine = useGameEngine()
