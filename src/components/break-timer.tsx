@@ -1,33 +1,46 @@
-import  { useEffect,  useState } from 'react';
-import { formatTimeMMSS, ONE_SECOND } from '../utils';
-import { useGame } from '../new-game-context';
+import { useEffect, useEffectEvent } from 'react';
+import { formatTimeMMSS, pauseBetweenRounds, playAudio } from '../utils';
+import { useGameEngine } from '../game-engine-context';
+import { useCountdown } from '../hooks/use-countdown';
 
-export const BreakTimer = ({breakDurationSeconds})=>{
-  const game = useGame()
-  const [timeRemaining, setTimer] = useState(breakDurationSeconds)
+const PAUSE_AFTER_BREAK_HORN_MILLIS = 1_500;
+const PLAY_HORN_ONCE = 1;
 
-  useEffect(()=>{
-  const timerId = window.setInterval(() => {
-    if (timeRemaining > 0) {
-      setTimer(timeRemaining - 1)
-    }else{
-      game.toggleBreakIsActive({restartGame: true })
-      clearInterval(timerId)
-    }
-  }, ONE_SECOND);
+export const BreakTimer = ({ breakDurationSeconds }) => {
+  const engine = useGameEngine()
+  const { hasGameStarted, setGameIsRunning } = engine
 
-    return ()=>clearInterval(timerId)
-  }, [timeRemaining])
+  const soundBreakEndHorn = () => playAudio(engine.breakEndAudioRef, engine.isAudioEnabled, PLAY_HORN_ONCE);
 
-  return(
-    <div id="lightbox" onClick={(evt)=>{
+  const countdown = useCountdown({
+    durationSeconds: breakDurationSeconds,
+    isRunning: hasGameStarted,
+    onComplete: soundBreakEndHorn,
+  });
+
+  useEffect(function keepRoundClockPausedForWholeBreak() {
+    if (hasGameStarted) setGameIsRunning(false)
+  }, [hasGameStarted, setGameIsRunning])
+
+  const endBreak = useEffectEvent(() => engine.endBreak())
+
+  useEffect(function resumePlayShortlyAfterBreakHorn() {
+    if (!countdown.isFinished) return;
+
+    const timeoutId = pauseBetweenRounds(PAUSE_AFTER_BREAK_HORN_MILLIS, endBreak)
+
+    return () => clearTimeout(timeoutId)
+  }, [countdown.isFinished])
+
+  return (
+    <div id="lightbox" onClick={(evt) => {
       evt.stopPropagation()
-      toggleBreak()
+      engine.endBreak()
     }}>
-    <div className="break-display">
-      <h2>BREAK TIME</h2>
-      <div className="time-remaining">{formatTimeMMSS(timeRemaining)}</div>
-    </div>
+      <div className="break-display">
+        <h2>BREAK TIME</h2>
+        <div className="time-remaining">{formatTimeMMSS(countdown.remainingSeconds)}</div>
+      </div>
     </div>
   )
-}
+};

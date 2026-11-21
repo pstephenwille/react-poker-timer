@@ -1,31 +1,13 @@
 import React from 'react';
 import { RoundTimer } from './round-timer';
+import { useGameEngine } from '../game-engine-context';
 
-interface MainDisplayProps {
-  currentRound: number;
-  blinds: Array<{
-    small: number;
-    big: number;
-  }>;
-  remainingTime: number;
-  formatTime: (seconds: number) => string;
-}
-
-export const MainDisplay: React.FC<any> = ({
-  currentRound,
-  blinds,
-  handleRoundEnd,
-  active,
-  roundTimeInSeconds,
-  audioRef,
-  audioEnabled,
-  resetGameToggle,
-  toggleBreak
-}) => {
+export const MainDisplay: React.FC<any> = () => {
+  const engine = useGameEngine()
 
   return (
-    <div id={'main-display'} className="main-display">
-        <RoundTimer />
+    <div key={`${engine.resetGameToggled}-${engine.roundDurationSeconds}`} id={'main-display'} className="main-display">
+      <RoundTimer />
     </div>
   );
 }; 

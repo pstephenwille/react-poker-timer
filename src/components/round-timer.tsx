@@ -1,74 +1,79 @@
-import { useEffect, useMemo, useState } from 'react';
-import { formatTimeMMSS, ONE_SECOND, playAudio, startConfettiCelebration } from '../utils';
-import { useGame } from '../new-game-context';
+import { useEffect, useEffectEvent, useMemo } from 'react';
+import {
+  formatTimeMMSS,
+  pauseBetweenRounds,
+  playAudio,
+  startConfettiCelebration,
+} from '../utils';
+import { useGameEngine } from '../game-engine-context';
+import { useCountdown } from '../hooks/use-countdown';
 
+const PAUSE_BETWEEN_ROUNDS_MILLIS = 3_000;
+const SMALL_BLIND_THAT_RETIRES_LOWEST_CHIPS = 25;
+
+const getBlindForRound = (blinds, round) => blinds[round] ?? blinds.at(-1);
+
+const isColorUpDue = (completedRound, completedBlind) => {
+  const isOpeningRound = completedRound === 0;
+  const retiresLowestChips = completedBlind?.small === SMALL_BLIND_THAT_RETIRES_LOWEST_CHIPS;
+
+  return !isOpeningRound && retiresLowestChips;
+};
 
 export const RoundTimer = () => {
-  const game = useGame()
-  const gameIsRunning = (
-    game.status === 'running'
-  )
-  const currentBlind = game.blinds[game.currentRound]
-  console.log('%c...xxx', 'color:gold', gameIsRunning, currentBlind);
-
+  const engine = useGameEngine()
+  const currentBlind = getBlindForRound(engine.blinds, engine.currentRound)
   const [smallBlind, bigBlind] = useBlindsDisplayHook(currentBlind)
-  const [remainingTime, setRemainingTime] = useState(game.roundDurationSeconds)
 
-  useEffect(function updateRoundTimePerUserChoice() {
-    setRemainingTime(game.roundDurationSeconds)
-  }, [game.roundDurationSeconds])
+  const celebrateRoundEnd = () => {
+    startConfettiCelebration();
+    playAudio(engine.roundEndAudioRef, engine.isAudioEnabled);
+  };
 
-  useEffect(() => {
-    // reset to default
-    setRemainingTime(game.roundDurationSeconds)
-  }, [/*resetGameToggle*/])
+  const countdown = useCountdown({
+    durationSeconds: engine.roundDurationSeconds,
+    isRunning: engine.gameIsRunning,
+    onComplete: celebrateRoundEnd,
+  });
 
-  useEffect(function triggerBreakToColorUp() {
-    if (game.currentRound === 0) return
+  const isPausedBetweenRounds = engine.gameIsRunning && countdown.isFinished;
 
-    if (currentBlind.small === 25) {
-      game.toggleBreakIsActive({ startBreak: true })
+  const startColorUpBreakIfDue = (completedRound, completedBlind) => {
+    if (isColorUpDue(completedRound, completedBlind)) {
+      engine.toggleBreakIsActive(true)
     }
-  }, [currentBlind, game.currentRound]);
+  }
 
-  useEffect(() => {
-    if (!gameIsRunning) return;
+  const advanceToNextRound = useEffectEvent(() => {
+    const completedRound = engine.currentRound
+    const completedBlind = currentBlind
 
-    const timerId = window.setInterval(() => {
-      console.log('%c...timer', 'color:gold', game.roundDurationSeconds);
+    countdown.reset()
+    engine.incrementCurrentRound()
+    startColorUpBreakIfDue(completedRound, completedBlind)
+  });
 
-      if (remainingTime <= 1) {
-        startConfettiCelebration()
-        playAudio(game.audioRef, true);
+  useEffect(function advanceAfterPauseBetweenRounds() {
+    if (!isPausedBetweenRounds) return;
 
-        pauseBetweenRounds(3_000, () => {
-          setRemainingTime(game.roundDurationSeconds)
-          // handleRoundEnd()
-        })
-      }
-      if (remainingTime > 0) {
-        setRemainingTime(remainingTime - 1)
-      } else {
-        clearInterval(timerId)
-      }
-    }, ONE_SECOND)
+    const timeoutId = pauseBetweenRounds(PAUSE_BETWEEN_ROUNDS_MILLIS, advanceToNextRound)
 
-    return () => {
-      clearInterval(timerId)
-    }
-  }, [gameIsRunning, remainingTime])
+    return () => clearTimeout(timeoutId)
+  }, [isPausedBetweenRounds])
+
 
   return (
     <div id={'main-display'} className="main-display">
 
       <div className="blinds-display">
+
         {smallBlind}
 
         <div className="time-remaining">
           <p className={'current-level'}>
-            Round: {game.currentRound + 1}
+            Round: {engine.currentRound + 1}
           </p>
-          <h2>{formatTimeMMSS(remainingTime)}</h2>
+          <h2>{formatTimeMMSS(countdown.remainingSeconds)}</h2>
         </div>
 
         {bigBlind}
@@ -76,15 +81,8 @@ export const RoundTimer = () => {
       </div>
     </div>
   )
-}
+};
 
-
-const pauseBetweenRounds = (pauseMillis, workToDo) => {
-  const timeoutId = setTimeout(() => {
-    workToDo()
-    clearTimeout(timeoutId)
-  }, pauseMillis)
-}
 
 const useBlindsDisplayHook = (currentBlind) => {
   const [smallBlind, bigBlind] = useMemo(() => {
@@ -92,13 +90,13 @@ const useBlindsDisplayHook = (currentBlind) => {
       (
         <div className="small-blind">
           <p>Small Blind</p>
-          <h2>{currentBlind.small}</h2>
+          <h2>{currentBlind?.small}</h2>
         </div>
       ),
       (
         <div className="big-blind">
           <p>Big Blind</p>
-          <h2>{currentBlind.big}</h2>
+          <h2>{currentBlind?.big}</h2>
         </div>
       )
     ]
