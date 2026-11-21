@@ -1,11 +1,10 @@
 import { createRoot } from 'react-dom/client'
 import './index.css'
-// import App from './App.tsx'
-import { GameProvider } from './new-game-context';
-import { NewApp } from './new-app';
+import { GameProvider } from './game-engine-context';
+import { App } from './app';
 
 createRoot(document.getElementById('root')!).render(
   <GameProvider>
-    <NewApp/>
+    <App/>
   </GameProvider>
 )

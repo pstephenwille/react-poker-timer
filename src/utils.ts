@@ -1,6 +1,10 @@
 import React from 'react';
 import { confetti } from '@tsparticles/confetti';
-export const ONE_SECOND = 1_0;
+
+export const TIME_COUNTER_MULTIPLIER = 10;
+export const DEFAULT_ROUND_SECONDS = 60
+export const DEFAULT_BREAK_SECONDS = 60
+export const ONE_SECOND = 1_00;
 export const ROUND_TIMES = [1, 5, 10, 15, 20, 25, 30];
 export const ALL_BLINDS: Array<{ small: number, big: number }> = [
   { small: 5, big: 10 },
@@ -16,14 +20,17 @@ export const ALL_BLINDS: Array<{ small: number, big: number }> = [
   { small: 500, big: 1000 },
 ]
 
-export const playAudio = (audioRef: React.RefObject<HTMLAudioElement | null>, audioEnabled: boolean = false) => {
+export const playAudio = (
+  audioRef: React.RefObject<HTMLAudioElement | null>,
+  audioEnabled: boolean = false,
+  repeatXTimes: number = 3
+) => {
   if (!audioRef.current) return;
-  if(audioEnabled === false) return;
+  if (audioEnabled === false) return;
 
-  let reapeatXTimes = 3;
   audioRef.current.onended = () => {
-    --reapeatXTimes;
-    if (reapeatXTimes > 0 && audioRef.current) {
+    --repeatXTimes;
+    if (repeatXTimes > 0 && audioRef.current) {
       audioRef.current.play();
     }
   }
@@ -38,11 +45,10 @@ export const formatTimeMMSS = (seconds: number): string => {
 };
 
 export const initializeBlindsForNewGame = (selectedBlind: number) => {
-  const gameBlinds = ALL_BLINDS.filter(blind => blind.small >= selectedBlind);
-  return gameBlinds;
+  return ALL_BLINDS.filter(blind => blind.small >= selectedBlind);
 }
 
-const brandColors = ['#FFC5FF', "#FFFF6B", "#00e5ff", '#ffffff', '#ccff00'];
+const brandColors = ['#ffffff', '#000000'];
 
 export function startConfettiCelebration(durationInSeconds = 3) {
   const endTime = Date.now() + durationInSeconds * 1_000;
@@ -50,7 +56,7 @@ export function startConfettiCelebration(durationInSeconds = 3) {
   function frame() {
     // Launch a small burst from the left edge
     confetti('confetti-canvas', {
-      particleCount: 5,
+      particleCount: 75,
       angle: 60,
       startVelocity: 75,
       spread: 100,
@@ -60,7 +66,7 @@ export function startConfettiCelebration(durationInSeconds = 3) {
 
     // Launch a small burst from the right edge
     confetti('confetti-canvas', {
-      particleCount: 5,
+      particleCount: 75,
       startVelocity: 75,
       angle: 120,
       spread: 100,
@@ -77,4 +83,9 @@ export function startConfettiCelebration(durationInSeconds = 3) {
   requestAnimationFrame(frame);
 }
 
+export const pauseBetweenRounds = (pauseMillis, workToDo) => {
+  return setTimeout(() => {
+    workToDo()
+  }, pauseMillis)
+}
 

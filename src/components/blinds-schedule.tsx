@@ -1,43 +1,25 @@
 import React from 'react';
+import { useGameEngine } from '../game-engine-context';
 
-interface RoundSettingsProps {
-  showSettings: boolean;
-  breakTime: number;
-  handleBreakTimeChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  setRoundTimeInSeconds: (seconds: number) => void;
-  roundTimeInSeconds: number;
-  setInitialGameBlinds: (evt: React.ChangeEvent<HTMLSelectElement>) => void;
-  currentRound: number;
-  blinds: Array<{
-    small: number;
-    big: number;
-  }>;
-}
+export const BlindsSchedule: React.FC<any> = () => {
+  const engine = useGameEngine()
 
-export const BlindsSchedule: React.FC<any> = ({
-  roundTimeInSeconds,
-  currentRound,
-  blinds,
-}) => {
-
-  const isLastBlind = currentRound + 1 >= blinds.length;
-
+  const isLastBlind = engine.currentRound + 1 >= engine.blinds.length;
   const remainingBlinds = isLastBlind
-    ? [blinds.at(-1)]
-    : blinds.slice(currentRound + 1, currentRound + 4)
+    ? [engine.blinds.at(-1)]
+    : engine.blinds.slice(engine.currentRound + 1, engine.currentRound + 4)
 
   return (
     <div id={'blinds-schedule'}>
       <div className="next-levels">
-        <h3>Upcoming Blinds</h3>
+        <h3>{isLastBlind?"Final Blinds " : "Upcoming Blinds"}</h3>
         <div className="levels-list">
           {remainingBlinds.map((level, index) => {
-
             return (
               <div key={index} className="level-item">
-                <div>Level {currentRound + index + 2}</div>
+                <div>Level {engine.currentRound + index + 2}</div>
                 <p>{level.small} / {level.big}</p>
-                <p>{roundTimeInSeconds / 60} min Round</p>
+                <p>{engine.roundDurationSeconds / 60} min Round</p>
               </div>
             )
           })}

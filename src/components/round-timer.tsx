@@ -1,72 +1,128 @@
-import { useEffect, useMemo, useState } from 'react';
-import { formatTimeMMSS, ONE_SECOND, playAudio, startConfettiCelebration } from '../utils';
-import { useGame } from '../new-game-context';
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
+import {
+  formatTimeMMSS,
+  ONE_SECOND,
+  pauseBetweenRounds,
+  playAudio,
+  startConfettiCelebration,
+  TIME_COUNTER_MULTIPLIER
+} from '../utils';
+import { useGameEngine } from '../game-engine-context';
 
 
 export const RoundTimer = () => {
-  const game = useGame()
-  const gameIsRunning = (
-    game.status === 'running'
-  )
-  const currentBlind = game.blinds[game.currentRound]
-  console.log('%c...xxx', 'color:gold', gameIsRunning, currentBlind);
-
+  const engine = useGameEngine()
+  const currentBlind = engine.currentRound < engine.blinds.length
+    ? engine.blinds[engine.currentRound]
+    : engine.blinds.at(-1)
   const [smallBlind, bigBlind] = useBlindsDisplayHook(currentBlind)
-  const [remainingTime, setRemainingTime] = useState(game.roundDurationSeconds)
+  const [remainingTime, setRemainingTime] = useState(engine.roundDurationSeconds)
+  const [prevDuration, setPrevDuration] = useState(engine.roundDurationSeconds);
+  const isAudioEnabledRef = useRef(engine.isAudioEnabled);
 
-  useEffect(function updateRoundTimePerUserChoice() {
-    setRemainingTime(game.roundDurationSeconds)
-  }, [game.roundDurationSeconds])
+  if (engine.roundDurationSeconds !== prevDuration) {
+    setPrevDuration(engine.roundDurationSeconds);
+    setRemainingTime(engine.roundDurationSeconds);
+  }
 
   useEffect(() => {
-    // reset to default
-    setRemainingTime(game.roundDurationSeconds)
-  }, [/*resetGameToggle*/])
+    isAudioEnabledRef.current = engine.isAudioEnabled;
+  }, [engine.isAudioEnabled]);
 
-  useEffect(function triggerBreakToColorUp() {
-    if (game.currentRound === 0) return
 
-    if (currentBlind.small === 25) {
-      game.toggleBreakIsActive({ startBreak: true })
+  const triggerBreakToColorUp = useEffectEvent(() => {
+    if (engine.currentRound === 0) return
+
+    if (currentBlind?.small === 25) {
+      engine.toggleBreakIsActive(true)
     }
-  }, [currentBlind, game.currentRound]);
+  })
+  /* TODO: 11/20/26, stephen; start */
+  const pauseTimeoutId = useRef(null)
+  const onTick = useEffectEvent((endTimeMillis, intervalId) => {
+    const remainingMs = endTimeMillis - Date.now()
+    const nextSeconds = Math.max(0, Math.floor(remainingMs / 1_000))
+
+    setRemainingTime((prev) => prev !== nextSeconds ? nextSeconds : prev);
+
+    if (nextSeconds <= 0) {
+      clearInterval(intervalId)
+      startConfettiCelebration();
+      playAudio(engine.roundEndAudioRef, isAudioEnabledRef.current);
+
+      pauseTimeoutId.current =  pauseBetweenRounds(3_000, () => {
+        engine.incrementCurrentRound()
+        pauseTimeoutId.current  = null;
+        setRemainingTime( engine.roundDurationSeconds);
+        triggerBreakToColorUp()
+      })
+    }
+  });
 
   useEffect(() => {
-    if (!gameIsRunning) return;
+    console.log('%c...game-timer', 'color:gold',  engine.gameIsRunning);
 
-    const timerId = window.setInterval(() => {
-      console.log('%c...timer', 'color:gold', game.roundDurationSeconds);
+    if (!engine.gameIsRunning) return;
 
-      if (remainingTime <= 1) {
-        startConfettiCelebration()
-        playAudio(game.audioRef, true);
+    const endTimeMillis = Date.now() + (remainingTime * 1_000) / TIME_COUNTER_MULTIPLIER;
 
-        pauseBetweenRounds(3_000, () => {
-          setRemainingTime(game.roundDurationSeconds)
-          // handleRoundEnd()
-        })
-      }
-      if (remainingTime > 0) {
-        setRemainingTime(remainingTime - 1)
-      } else {
-        clearInterval(timerId)
-      }
-    }, ONE_SECOND)
+    const intervalId = setInterval(() => {
+      onTick(endTimeMillis, intervalId)
+    }, 250)
 
     return () => {
-      clearInterval(timerId)
+      clearInterval(intervalId)
+      clearTimeout(pauseTimeoutId.current)
     }
-  }, [gameIsRunning, remainingTime])
+  }, [engine.gameIsRunning, engine.roundDurationSeconds, currentBlind, engine.currentRound])
+
+  /* TODO: 11/20/26, stephen; end */
+
+  useEffect(function devGameTimer() {
+    return
+    if (!engine.gameIsRunning) return;
+
+    let secondsLeft = remainingTime > 0 ? remainingTime : engine.roundDurationSeconds;
+    let delayId: number | null = null;
+    const timerId = window.setInterval(() => {
+      if (delayId !== null) return;
+      if (engine.breakIsActive) return;
+
+      secondsLeft -= 1;
+      setRemainingTime(Math.max(0, secondsLeft));
+
+      if (secondsLeft <= 0) {
+        startConfettiCelebration();
+        playAudio(engine.roundEndAudioRef, isAudioEnabledRef.current);
+
+        delayId = pauseBetweenRounds(3_000, () => {
+          engine.incrementCurrentRound()
+          delayId = null;
+          secondsLeft = engine.roundDurationSeconds;
+          setRemainingTime(secondsLeft);
+          triggerBreakToColorUp()
+        })
+      }
+    }, ONE_SECOND);
+
+
+    return () => {
+      clearInterval(timerId);
+      if (delayId !== null) clearTimeout(delayId);
+    };
+  }, [engine.gameIsRunning, engine.roundDurationSeconds, currentBlind]);
+
 
   return (
     <div id={'main-display'} className="main-display">
 
       <div className="blinds-display">
+
         {smallBlind}
 
         <div className="time-remaining">
           <p className={'current-level'}>
-            Round: {game.currentRound + 1}
+            Round: {engine.currentRound + 1}
           </p>
           <h2>{formatTimeMMSS(remainingTime)}</h2>
         </div>
@@ -76,15 +132,8 @@ export const RoundTimer = () => {
       </div>
     </div>
   )
-}
+};
 
-
-const pauseBetweenRounds = (pauseMillis, workToDo) => {
-  const timeoutId = setTimeout(() => {
-    workToDo()
-    clearTimeout(timeoutId)
-  }, pauseMillis)
-}
 
 const useBlindsDisplayHook = (currentBlind) => {
   const [smallBlind, bigBlind] = useMemo(() => {
@@ -92,13 +141,13 @@ const useBlindsDisplayHook = (currentBlind) => {
       (
         <div className="small-blind">
           <p>Small Blind</p>
-          <h2>{currentBlind.small}</h2>
+          <h2>{currentBlind?.small}</h2>
         </div>
       ),
       (
         <div className="big-blind">
           <p>Big Blind</p>
-          <h2>{currentBlind.big}</h2>
+          <h2>{currentBlind?.big}</h2>
         </div>
       )
     ]
